@@ -5,9 +5,9 @@ import {
   searchUnsplashPhotos,
   convertUnsplashPhotoToImageItem,
   type UnsplashPhoto,
-} from "./gallery-builder.utils";
+} from "./image-gallery.utils";
 
-describe("gallery-builder.utils", () => {
+describe("image-gallery.utils", () => {
   describe("createImageFromFile", () => {
     it("should create an ImageItem from a file", async () => {
       const file = new File(["test content"], "test-image.png", {

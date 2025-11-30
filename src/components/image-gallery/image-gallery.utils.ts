@@ -1,4 +1,4 @@
-import type { ImageItem } from "@/components/image-gallery";
+import type { ImageItem } from "./image-gallery";
 
 export const createImageFromFile = (file: File): Promise<ImageItem> => {
   return new Promise((resolve, reject) => {
