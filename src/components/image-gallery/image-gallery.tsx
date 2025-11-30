@@ -92,7 +92,9 @@ export const ImageGalleryDisplay = ({
 
   useEffect(() => {
     if (images.length > 0 && mainImageIndex >= images.length) {
-      setMainImageIndex(0);
+      setTimeout(() => {
+        setMainImageIndex(0);
+      }, 0);
     }
   }, [images.length, mainImageIndex]);
 
@@ -262,14 +264,14 @@ export const ImageGalleryDisplay = ({
         </div>
         {otherImages.length > 0 && (
           <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:max-h-[600px]">
-            {otherImages.map((image, idx) => {
+            {otherImages.map((image) => {
               const originalIndex = images.findIndex(
                 (img) => img.id === image.id
               );
               return (
                 <div
                   key={image.id}
-                  className="relative flex-shrink-0 image-gallery-item cursor-pointer"
+                  className="relative shrink-0 image-gallery-item cursor-pointer"
                   onClick={() => setMainImageIndex(originalIndex)}
                 >
                   <Image
