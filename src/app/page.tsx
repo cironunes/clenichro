@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   ImageGallery,
   type ImageGalleryLayout,
+  type ImageItem,
 } from "@/components/image-gallery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,15 @@ function GalleryBuilderContent() {
   const [selectedImageIds, setSelectedImageIds] = useState<
     Record<string, Set<string>>
   >({});
+  const [uploadedPreviews, setUploadedPreviews] = useState<
+    Record<string, ImageItem[]>
+  >({});
+  const [selectedUploadIds, setSelectedUploadIds] = useState<
+    Record<string, Set<string | number>>
+  >({});
+  const [showUploadPreview, setShowUploadPreview] = useState<string | null>(
+    null
+  );
 
   const galleries = state.context.galleries;
 
@@ -65,13 +75,57 @@ function GalleryBuilderContent() {
     try {
       send({ type: "UPLOAD_IMAGES_START" });
       const images = await createImagesFromFiles(files);
-      send({ type: "ADD_IMAGES", galleryId, images });
+      setUploadedPreviews((prev) => ({ ...prev, [galleryId]: images }));
+      setSelectedUploadIds((prev) => ({
+        ...prev,
+        [galleryId]: new Set(images.map((img) => img.id)),
+      }));
+      setShowUploadPreview(galleryId);
       send({ type: "UPLOAD_IMAGES_SUCCESS", images });
     } catch (error) {
       send({
         type: "UPLOAD_IMAGES_ERROR",
         error: error instanceof Error ? error.message : "Upload failed",
       });
+    }
+  };
+
+  const handleToggleUploadSelection = (
+    galleryId: string,
+    imageId: string | number
+  ) => {
+    setSelectedUploadIds((prev) => {
+      const current = prev[galleryId] || new Set();
+      const next = new Set(current);
+      if (next.has(imageId)) {
+        next.delete(imageId);
+      } else {
+        next.add(imageId);
+      }
+      return { ...prev, [galleryId]: next };
+    });
+  };
+
+  const handleConfirmUpload = (galleryId: string) => {
+    const previews = uploadedPreviews[galleryId] || [];
+    const selected = selectedUploadIds[galleryId] || new Set();
+    const imagesToAdd = previews.filter((img) => selected.has(img.id));
+    if (imagesToAdd.length > 0) {
+      send({ type: "ADD_IMAGES", galleryId, images: imagesToAdd });
+      setSelectedUploadIds((prev) => {
+        const next = { ...prev };
+        delete next[galleryId];
+        return next;
+      });
+      setUploadedPreviews((prev) => {
+        const next = { ...prev };
+        delete next[galleryId];
+        return next;
+      });
+      setShowUploadPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -243,7 +297,6 @@ function GalleryBuilderContent() {
                         className="hidden"
                         onChange={(e) => {
                           handleFileUpload(gallery.id, e.target.files);
-                          e.target.value = "";
                         }}
                       />
                       <Button
@@ -265,6 +318,144 @@ function GalleryBuilderContent() {
                           : "Load from Unsplash"}
                       </Button>
                     </div>
+
+                    {showUploadPreview === gallery.id &&
+                      uploadedPreviews[gallery.id] &&
+                      uploadedPreviews[gallery.id].length > 0 && (
+                        <div className="border rounded-lg p-4 bg-background">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm text-muted-foreground">
+                              {(selectedUploadIds[gallery.id]?.size || 0) > 0
+                                ? `${selectedUploadIds[gallery.id].size} image${
+                                    selectedUploadIds[gallery.id].size > 1
+                                      ? "s"
+                                      : ""
+                                  } selected`
+                                : "Select images to add"}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  setSelectedUploadIds((prev) => ({
+                                    ...prev,
+                                    [gallery.id]: new Set(),
+                                  }))
+                                }
+                                disabled={
+                                  (selectedUploadIds[gallery.id]?.size || 0) ===
+                                  0
+                                }
+                              >
+                                Clear Selection
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setShowUploadPreview(null);
+                                  setUploadedPreviews((prev) => {
+                                    const next = { ...prev };
+                                    delete next[gallery.id];
+                                    return next;
+                                  });
+                                  setSelectedUploadIds((prev) => {
+                                    const next = { ...prev };
+                                    delete next[gallery.id];
+                                    return next;
+                                  });
+                                  if (fileInputRef.current) {
+                                    fileInputRef.current.value = "";
+                                  }
+                                }}
+                              >
+                                <X className="size-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleConfirmUpload(gallery.id)}
+                                disabled={
+                                  (selectedUploadIds[gallery.id]?.size || 0) ===
+                                  0
+                                }
+                              >
+                                Add Selected (
+                                {selectedUploadIds[gallery.id]?.size || 0})
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto">
+                            {uploadedPreviews[gallery.id].map((image) => {
+                              const isSelected = (
+                                selectedUploadIds[gallery.id] || new Set()
+                              ).has(image.id);
+                              return (
+                                <div
+                                  key={image.id}
+                                  className="relative group cursor-pointer"
+                                  onClick={() =>
+                                    handleToggleUploadSelection(
+                                      gallery.id,
+                                      image.id
+                                    )
+                                  }
+                                >
+                                  <div
+                                    className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
+                                      isSelected
+                                        ? "border-primary ring-2 ring-primary ring-offset-2"
+                                        : "border-border hover:border-primary/50"
+                                    }`}
+                                  >
+                                    <Image
+                                      src={image.src}
+                                      alt={image.alt}
+                                      width={200}
+                                      height={200}
+                                      className="w-full h-full object-cover"
+                                      unoptimized={image.src.startsWith(
+                                        "data:"
+                                      )}
+                                    />
+                                    <div
+                                      className={`absolute inset-0 flex items-center justify-center transition-opacity ${
+                                        isSelected
+                                          ? "bg-primary/20 opacity-100"
+                                          : "bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/40"
+                                      }`}
+                                    >
+                                      <div
+                                        className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                          isSelected
+                                            ? "bg-primary border-primary"
+                                            : "bg-background/80 border-background"
+                                        }`}
+                                      >
+                                        {isSelected && (
+                                          <svg
+                                            className="w-4 h-4 text-primary-foreground"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={3}
+                                              d="M5 13l4 4L19 7"
+                                            />
+                                          </svg>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                     {showUnsplashSearch === gallery.id && (
                       <div className="space-y-4">
