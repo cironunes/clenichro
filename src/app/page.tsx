@@ -244,7 +244,11 @@ function GalleryBuilderContent() {
           ) : (
             <div className="space-y-8">
               {galleries.map((gallery) => (
-                <Card key={gallery.id} className="w-full">
+                <Card
+                  key={gallery.id}
+                  className="w-full"
+                  data-testid="gallery-card"
+                >
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>
@@ -254,6 +258,7 @@ function GalleryBuilderContent() {
                         variant="destructive"
                         size="icon"
                         onClick={() => handleRemoveGallery(gallery.id)}
+                        aria-label="Delete gallery"
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -271,6 +276,7 @@ function GalleryBuilderContent() {
                             })
                           }
                           className="rounded-md border border-input bg-background px-3 py-1 text-sm"
+                          aria-label="Layout"
                         >
                           <option value="horizontal">Horizontal</option>
                           <option value="vertical">Vertical</option>
@@ -322,7 +328,10 @@ function GalleryBuilderContent() {
                     {showUploadPreview === gallery.id &&
                       uploadedPreviews[gallery.id] &&
                       uploadedPreviews[gallery.id].length > 0 && (
-                        <div className="border rounded-lg p-4 bg-background">
+                        <div
+                          className="border rounded-lg p-4 bg-background"
+                          data-testid="upload-preview"
+                        >
                           <div className="flex items-center justify-between mb-4">
                             <div className="text-sm text-muted-foreground">
                               {(selectedUploadIds[gallery.id]?.size || 0) > 0
@@ -641,7 +650,11 @@ function GalleryBuilderContent() {
                       {gallery.images.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-2">
                           {gallery.images.map((image) => (
-                            <div key={image.id} className="relative group">
+                            <div
+                              key={image.id}
+                              className="relative group"
+                              data-testid="image-thumbnail"
+                            >
                               <Image
                                 src={image.src}
                                 alt={image.alt}
