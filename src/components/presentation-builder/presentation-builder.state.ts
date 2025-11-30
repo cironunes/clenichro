@@ -1,5 +1,9 @@
 import { createMachine, assign } from "xstate";
-import type { ImageItem, ImageGalleryLayout } from "@/components/image-gallery";
+import type {
+  ImageItem,
+  ImageGalleryLayout,
+  ImageGalleryMode,
+} from "@/components/image-gallery";
 
 export type ImageGalleryWidget = {
   id: string;
@@ -7,6 +11,7 @@ export type ImageGalleryWidget = {
   images: ImageItem[];
   layout: ImageGalleryLayout;
   title?: string;
+  mode?: ImageGalleryMode;
 };
 
 export type Widget = ImageGalleryWidget;
@@ -81,6 +86,7 @@ export const createPresentationBuilderMachine = (uniqueId: string) =>
                     images: event.widgetData?.images || [],
                     layout: event.widgetData?.layout || "horizontal",
                     title: event.widgetData?.title || "Image Gallery",
+                    mode: "edit",
                   };
                   return context.slides.map((s) =>
                     s.id === event.slideId

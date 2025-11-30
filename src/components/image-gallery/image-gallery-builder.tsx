@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit2, Trash2, Upload, Search, X } from "lucide-react";
+import { Edit2, Trash2, Upload, Search, X, Check } from "lucide-react";
 import { useMachine } from "@xstate/react";
 import { useId, useMemo } from "react";
 import { createImageGalleryMachine } from "./image-gallery.state";
@@ -12,6 +12,7 @@ import { ImageGalleryProvider, useImageGallery } from "./image-gallery.context";
 import {
   ImageGallery,
   type ImageGalleryLayout,
+  type ImageGalleryMode,
   type ImageItem,
 } from "./image-gallery";
 import {
@@ -25,20 +26,24 @@ type ImageGalleryBuilderProps = {
   images: ImageItem[];
   layout: ImageGalleryLayout;
   title?: string;
+  mode?: ImageGalleryMode;
   onImagesChange: (images: ImageItem[]) => void;
   onLayoutChange: (layout: ImageGalleryLayout) => void;
   onTitleChange?: (title: string) => void;
   onRemove?: () => void;
+  onModeChange?: (mode: ImageGalleryMode) => void;
 };
 
 export function ImageGalleryBuilder({
   images: initialImages,
   layout,
   title,
+  mode = "preview",
   onImagesChange,
   onLayoutChange,
   onTitleChange,
   onRemove,
+  onModeChange,
 }: ImageGalleryBuilderProps) {
   const uniqueId = useId();
   const machine = useMemo(
@@ -47,10 +52,6 @@ export function ImageGalleryBuilder({
   );
   const [state, send] = useMachine(machine);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [editingCaption, setEditingCaption] = useState<{
-    imageId: string | number;
-  } | null>(null);
-  const [captionValue, setCaptionValue] = useState("");
   const [unsplashQuery, setUnsplashQuery] = useState("");
   const [showUnsplashSearch, setShowUnsplashSearch] = useState(false);
   const [unsplashResults, setUnsplashResults] = useState<UnsplashPhoto[]>([]);
@@ -160,107 +161,97 @@ export function ImageGalleryBuilder({
     }
   };
 
-  const handleRemoveImage = (imageId: string | number) => {
-    const newImages = initialImages.filter((img) => img.id !== imageId);
-    onImagesChange(newImages);
-  };
-
-  const handleStartEditCaption = (
-    imageId: string | number,
-    currentCaption: string | undefined
-  ) => {
-    setEditingCaption({ imageId });
-    setCaptionValue(currentCaption || "");
-  };
-
-  const handleSaveCaption = () => {
-    if (editingCaption) {
-      const newImages = initialImages.map((img) =>
-        img.id === editingCaption.imageId
-          ? { ...img, caption: captionValue || undefined }
-          : img
-      );
-      onImagesChange(newImages);
-      setEditingCaption(null);
-      setCaptionValue("");
-    }
-  };
-
-  const handleCancelEditCaption = () => {
-    setEditingCaption(null);
-    setCaptionValue("");
-  };
-
   return (
     <ImageGalleryProvider state={state} send={send}>
-      <Card className="border-2" data-testid="widget-card">
+      <Card
+        className={
+          mode === "edit" ? "shadow-md" : "border-transparent shadow-none"
+        }
+        data-testid="widget-card"
+      >
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">
               {title || "Image Gallery"}
             </CardTitle>
-            {onRemove && (
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={onRemove}
-                aria-label="Remove widget"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {mode === "edit" && onModeChange && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onModeChange("preview")}
+                  className="gap-2"
+                  aria-label="Confirm and exit edit mode"
+                >
+                  <Check className="size-4" />
+                  Confirm
+                </Button>
+              )}
+              {mode === "edit" && onRemove && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={onRemove}
+                  aria-label="Remove widget"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <label className="flex items-center gap-2">
-              <span className="text-sm font-medium">Layout:</span>
-              <select
-                value={layout}
-                onChange={(e) =>
-                  onLayoutChange(e.target.value as ImageGalleryLayout)
-                }
-                className="rounded-md border border-input bg-background px-3 py-1 text-sm"
-                aria-label="Layout"
+          {mode === "edit" && (
+            <div className="flex flex-wrap gap-2">
+              <label className="flex items-center gap-2">
+                <span className="text-sm font-medium">Layout:</span>
+                <select
+                  value={layout}
+                  onChange={(e) =>
+                    onLayoutChange(e.target.value as ImageGalleryLayout)
+                  }
+                  className="rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  aria-label="Layout"
+                >
+                  <option value="horizontal">Horizontal</option>
+                  <option value="vertical">Vertical</option>
+                  <option value="card">Card</option>
+                </select>
+              </label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={state.context.uploading}
+                className="gap-2"
               >
-                <option value="horizontal">Horizontal</option>
-                <option value="vertical">Vertical</option>
-                <option value="card">Card</option>
-              </select>
-            </label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={state.context.uploading}
-              className="gap-2"
-            >
-              <Upload className="size-3" />
-              {state.context.uploading ? "Uploading..." : "Upload Images"}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUnsplashSearch(!showUnsplashSearch)}
-              disabled={state.context.loadingFromUnsplash}
-              className="gap-2"
-            >
-              <Search className="size-3" />
-              {state.context.loadingFromUnsplash
-                ? "Loading..."
-                : "Load from Unsplash"}
-            </Button>
-          </div>
+                <Upload className="size-3" />
+                {state.context.uploading ? "Uploading..." : "Upload Images"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e.target.files)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUnsplashSearch(!showUnsplashSearch)}
+                disabled={state.context.loadingFromUnsplash}
+                className="gap-2"
+              >
+                <Search className="size-3" />
+                {state.context.loadingFromUnsplash
+                  ? "Loading..."
+                  : "Load from Unsplash"}
+              </Button>
+            </div>
+          )}
 
-          {state.context.error && (
+          {mode === "edit" && state.context.error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
               {state.context.error}
               <button
@@ -272,115 +263,117 @@ export function ImageGalleryBuilder({
             </div>
           )}
 
-          {showUploadPreview && uploadedPreviews.length > 0 && (
-            <div
-              className="border rounded-lg p-4 bg-background"
-              data-testid="upload-preview"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm text-muted-foreground">
-                  {selectedUploadIds.size > 0
-                    ? `${selectedUploadIds.size} image${
-                        selectedUploadIds.size > 1 ? "s" : ""
-                      } selected`
-                    : "Select images to add"}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedUploadIds(new Set())}
-                    disabled={selectedUploadIds.size === 0}
-                  >
-                    Clear Selection
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowUploadPreview(false);
-                      setUploadedPreviews([]);
-                      setSelectedUploadIds(new Set());
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = "";
-                      }
-                    }}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleConfirmUpload}
-                    disabled={selectedUploadIds.size === 0}
-                  >
-                    Add Selected ({selectedUploadIds.size})
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto">
-                {uploadedPreviews.map((image) => {
-                  const isSelected = selectedUploadIds.has(image.id);
-                  return (
-                    <div
-                      key={image.id}
-                      className="relative group cursor-pointer"
-                      onClick={() => handleToggleUploadSelection(image.id)}
+          {mode === "edit" &&
+            showUploadPreview &&
+            uploadedPreviews.length > 0 && (
+              <div
+                className="border rounded-lg p-4 bg-background"
+                data-testid="upload-preview"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-muted-foreground">
+                    {selectedUploadIds.size > 0
+                      ? `${selectedUploadIds.size} image${
+                          selectedUploadIds.size > 1 ? "s" : ""
+                        } selected`
+                      : "Select images to add"}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedUploadIds(new Set())}
+                      disabled={selectedUploadIds.size === 0}
                     >
+                      Clear Selection
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowUploadPreview(false);
+                        setUploadedPreviews([]);
+                        setSelectedUploadIds(new Set());
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleConfirmUpload}
+                      disabled={selectedUploadIds.size === 0}
+                    >
+                      Add Selected ({selectedUploadIds.size})
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto">
+                  {uploadedPreviews.map((image) => {
+                    const isSelected = selectedUploadIds.has(image.id);
+                    return (
                       <div
-                        className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
-                          isSelected
-                            ? "border-primary ring-2 ring-primary ring-offset-2"
-                            : "border-border hover:border-primary/50"
-                        }`}
+                        key={image.id}
+                        className="relative group cursor-pointer"
+                        onClick={() => handleToggleUploadSelection(image.id)}
                       >
-                        <Image
-                          src={image.src}
-                          alt={image.alt}
-                          width={200}
-                          height={200}
-                          className="w-full h-full object-cover"
-                          unoptimized={image.src.startsWith("data:")}
-                        />
                         <div
-                          className={`absolute inset-0 flex items-center justify-center transition-opacity ${
+                          className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all ${
                             isSelected
-                              ? "bg-primary/20 opacity-100"
-                              : "bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/40"
+                              ? "border-primary ring-2 ring-primary ring-offset-2"
+                              : "border-border hover:border-primary/50"
                           }`}
                         >
+                          <Image
+                            src={image.src}
+                            alt={image.alt}
+                            width={200}
+                            height={200}
+                            className="w-full h-full object-cover"
+                            unoptimized={image.src.startsWith("data:")}
+                          />
                           <div
-                            className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                            className={`absolute inset-0 flex items-center justify-center transition-opacity ${
                               isSelected
-                                ? "bg-primary border-primary"
-                                : "bg-background/80 border-background"
+                                ? "bg-primary/20 opacity-100"
+                                : "bg-black/0 opacity-0 group-hover:opacity-100 group-hover:bg-black/40"
                             }`}
                           >
-                            {isSelected && (
-                              <svg
-                                className="w-4 h-4 text-primary-foreground"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={3}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
+                            <div
+                              className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? "bg-primary border-primary"
+                                  : "bg-background/80 border-background"
+                              }`}
+                            >
+                              {isSelected && (
+                                <svg
+                                  className="w-4 h-4 text-primary-foreground"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {showUnsplashSearch && (
+          {mode === "edit" && showUnsplashSearch && (
             <div className="space-y-4">
               <div className="flex gap-2 p-4 bg-muted rounded-md">
                 <input
@@ -521,82 +514,40 @@ export function ImageGalleryBuilder({
             </div>
           )}
 
-          <div className="space-y-2">
-            <ImageGallery images={initialImages} layout={layout} />
-            {initialImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {initialImages.map((image) => (
-                  <div
-                    key={image.id}
-                    className="relative group"
-                    data-testid="image-thumbnail"
+          <div className="space-y-2 relative group">
+            <div className={mode === "preview" ? "relative" : ""}>
+              {mode === "preview" && onModeChange && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => onModeChange("edit")}
+                    className="gap-2 pointer-events-auto"
+                    aria-label="Enter edit mode"
                   >
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      width={64}
-                      height={64}
-                      className="w-16 h-16 object-cover rounded border"
-                      unoptimized={image.src.startsWith("data:")}
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
-                      <button
-                        onClick={() =>
-                          handleStartEditCaption(image.id, image.caption)
-                        }
-                        className="bg-primary text-primary-foreground rounded p-1"
-                        aria-label="Edit caption"
-                      >
-                        <Edit2 className="size-3" />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveImage(image.id)}
-                        className="bg-destructive text-white rounded p-1"
-                        aria-label="Remove image"
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
-                    </div>
-                    {editingCaption?.imageId === image.id && (
-                      <div className="absolute top-full left-0 mt-2 p-2 bg-background border rounded shadow-lg z-10 min-w-[200px]">
-                        <input
-                          type="text"
-                          value={captionValue}
-                          onChange={(e) => setCaptionValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleSaveCaption();
-                            } else if (e.key === "Escape") {
-                              handleCancelEditCaption();
-                            }
-                          }}
-                          placeholder="Enter caption..."
-                          className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm mb-2"
-                          autoFocus
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveCaption}
-                            className="flex-1"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancelEditCaption}
-                            className="flex-1"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                    <Edit2 className="size-4" />
+                    Edit Gallery
+                  </Button>
+                </div>
+              )}
+              <ImageGallery
+                images={initialImages}
+                layout={layout}
+                mode={mode}
+                onRemove={(imageId) => {
+                  const newImages = initialImages.filter(
+                    (img) => img.id !== imageId
+                  );
+                  onImagesChange(newImages);
+                }}
+                onEditCaption={(imageId, caption) => {
+                  const newImages = initialImages.map((img) =>
+                    img.id === imageId ? { ...img, caption } : img
+                  );
+                  onImagesChange(newImages);
+                }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

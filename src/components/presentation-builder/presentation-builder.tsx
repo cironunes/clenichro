@@ -122,6 +122,7 @@ function PresentationBuilderContent() {
                               images={widget.images}
                               layout={widget.layout}
                               title={widget.title}
+                              mode={widget.mode || "preview"}
                               onImagesChange={(images) => {
                                 handleUpdateWidget(slide.id, widget.id, {
                                   images,
@@ -135,6 +136,11 @@ function PresentationBuilderContent() {
                               onTitleChange={(title) => {
                                 handleUpdateWidget(slide.id, widget.id, {
                                   title,
+                                });
+                              }}
+                              onModeChange={(mode) => {
+                                handleUpdateWidget(slide.id, widget.id, {
+                                  mode,
                                 });
                               }}
                               onRemove={() => {
