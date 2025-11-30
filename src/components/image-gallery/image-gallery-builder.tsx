@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Edit2, Trash2, Upload, Search, X, Check } from "lucide-react";
 import { useMachine } from "@xstate/react";
 import { useId, useMemo } from "react";
 import { createImageGalleryMachine } from "./image-gallery.state";
-import { ImageGalleryProvider, useImageGallery } from "./image-gallery.context";
+import { ImageGalleryProvider } from "./image-gallery.context";
 import {
   ImageGallery,
   type ImageGalleryLayout,
@@ -19,7 +19,6 @@ import {
   createImagesFromFiles,
   searchUnsplashPhotos,
   convertUnsplashPhotoToImageItem,
-  type UnsplashPhoto,
 } from "./image-gallery.utils";
 
 type ImageGalleryBuilderProps = {
@@ -52,17 +51,6 @@ export function ImageGalleryBuilder({
   );
   const [state, send] = useMachine(machine);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [unsplashQuery, setUnsplashQuery] = useState("");
-  const [showUnsplashSearch, setShowUnsplashSearch] = useState(false);
-  const [unsplashResults, setUnsplashResults] = useState<UnsplashPhoto[]>([]);
-  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(
-    new Set()
-  );
-  const [uploadedPreviews, setUploadedPreviews] = useState<ImageItem[]>([]);
-  const [selectedUploadIds, setSelectedUploadIds] = useState<
-    Set<string | number>
-  >(new Set());
-  const [showUploadPreview, setShowUploadPreview] = useState(false);
 
   useEffect(() => {
     send({ type: "SET_IMAGES", images: initialImages });
@@ -74,9 +62,7 @@ export function ImageGalleryBuilder({
     try {
       send({ type: "UPLOAD_IMAGES_START" });
       const newImages = await createImagesFromFiles(files);
-      setUploadedPreviews(newImages);
-      setSelectedUploadIds(new Set(newImages.map((img) => img.id)));
-      setShowUploadPreview(true);
+      send({ type: "SET_UPLOADED_PREVIEWS", previews: newImages });
       send({ type: "UPLOAD_IMAGES_SUCCESS" });
     } catch (error) {
       send({
@@ -87,27 +73,17 @@ export function ImageGalleryBuilder({
   };
 
   const handleToggleUploadSelection = (imageId: string | number) => {
-    setSelectedUploadIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(imageId)) {
-        next.delete(imageId);
-      } else {
-        next.add(imageId);
-      }
-      return next;
-    });
+    send({ type: "TOGGLE_UPLOAD_SELECTION", imageId });
   };
 
   const handleConfirmUpload = () => {
-    const imagesToAdd = uploadedPreviews.filter((img) =>
-      selectedUploadIds.has(img.id)
+    const imagesToAdd = state.context.uploadedPreviews.filter((img) =>
+      state.context.selectedUploadIds.has(img.id)
     );
     if (imagesToAdd.length > 0) {
       const newImages = [...initialImages, ...imagesToAdd];
       onImagesChange(newImages);
-      setSelectedUploadIds(new Set());
-      setUploadedPreviews([]);
-      setShowUploadPreview(false);
+      send({ type: "CLOSE_UPLOAD_PREVIEW" });
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -115,49 +91,39 @@ export function ImageGalleryBuilder({
   };
 
   const handleUnsplashSearch = async () => {
-    if (!unsplashQuery.trim()) {
+    if (!state.context.unsplashQuery.trim()) {
       return;
     }
 
     try {
       send({ type: "LOAD_UNSPLASH_START" });
-      const photos = await searchUnsplashPhotos(unsplashQuery, 20);
-      setUnsplashResults(photos);
-      setSelectedImageIds(new Set());
+      const photos = await searchUnsplashPhotos(
+        state.context.unsplashQuery,
+        20
+      );
+      send({ type: "SET_UNSPLASH_RESULTS", results: photos });
       send({ type: "LOAD_UNSPLASH_SUCCESS" });
     } catch (error) {
       send({
         type: "LOAD_UNSPLASH_ERROR",
-        error: error instanceof Error ? error.message : "Failed to load images",
+        error: "Failed to load images",
       });
-      setUnsplashResults([]);
     }
   };
 
   const handleToggleImageSelection = (photoId: string) => {
-    setSelectedImageIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(photoId)) {
-        next.delete(photoId);
-      } else {
-        next.add(photoId);
-      }
-      return next;
-    });
+    send({ type: "TOGGLE_IMAGE_SELECTION", imageId: photoId });
   };
 
   const handleAddSelectedImages = () => {
-    const selectedPhotos = unsplashResults.filter((photo) =>
-      selectedImageIds.has(photo.id)
+    const selectedPhotos = state.context.unsplashResults.filter((photo) =>
+      state.context.selectedImageIds.has(photo.id)
     );
     const newImageItems = selectedPhotos.map(convertUnsplashPhotoToImageItem);
     if (newImageItems.length > 0) {
       const newImages = [...initialImages, ...newImageItems];
       onImagesChange(newImages);
-      setSelectedImageIds(new Set());
-      setUnsplashResults([]);
-      setUnsplashQuery("");
-      setShowUnsplashSearch(false);
+      send({ type: "RESET_UNSPLASH_SEARCH" });
     }
   };
 
@@ -239,7 +205,7 @@ export function ImageGalleryBuilder({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowUnsplashSearch(!showUnsplashSearch)}
+                onClick={() => send({ type: "TOGGLE_UNSPLASH_SEARCH" })}
                 disabled={state.context.loadingFromUnsplash}
                 className="gap-2"
               >
@@ -264,17 +230,17 @@ export function ImageGalleryBuilder({
           )}
 
           {mode === "edit" &&
-            showUploadPreview &&
-            uploadedPreviews.length > 0 && (
+            state.context.showUploadPreview &&
+            state.context.uploadedPreviews.length > 0 && (
               <div
                 className="border rounded-lg p-4 bg-background"
                 data-testid="upload-preview"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-sm text-muted-foreground">
-                    {selectedUploadIds.size > 0
-                      ? `${selectedUploadIds.size} image${
-                          selectedUploadIds.size > 1 ? "s" : ""
+                    {state.context.selectedUploadIds.size > 0
+                      ? `${state.context.selectedUploadIds.size} image${
+                          state.context.selectedUploadIds.size > 1 ? "s" : ""
                         } selected`
                       : "Select images to add"}
                   </div>
@@ -282,18 +248,23 @@ export function ImageGalleryBuilder({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setSelectedUploadIds(new Set())}
-                      disabled={selectedUploadIds.size === 0}
+                      onClick={() => send({ type: "CLEAR_UPLOAD_SELECTION" })}
+                      disabled={state.context.selectedUploadIds.size === 0}
                     >
                       Clear Selection
                     </Button>
                     <Button
                       size="sm"
+                      onClick={handleConfirmUpload}
+                      disabled={state.context.selectedUploadIds.size === 0}
+                    >
+                      Add Selected ({state.context.selectedUploadIds.size})
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="ghost"
                       onClick={() => {
-                        setShowUploadPreview(false);
-                        setUploadedPreviews([]);
-                        setSelectedUploadIds(new Set());
+                        send({ type: "CLOSE_UPLOAD_PREVIEW" });
                         if (fileInputRef.current) {
                           fileInputRef.current.value = "";
                         }
@@ -301,18 +272,13 @@ export function ImageGalleryBuilder({
                     >
                       <X className="size-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleConfirmUpload}
-                      disabled={selectedUploadIds.size === 0}
-                    >
-                      Add Selected ({selectedUploadIds.size})
-                    </Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto">
-                  {uploadedPreviews.map((image) => {
-                    const isSelected = selectedUploadIds.has(image.id);
+                  {state.context.uploadedPreviews.map((image) => {
+                    const isSelected = state.context.selectedUploadIds.has(
+                      image.id
+                    );
                     return (
                       <div
                         key={image.id}
@@ -373,14 +339,16 @@ export function ImageGalleryBuilder({
               </div>
             )}
 
-          {mode === "edit" && showUnsplashSearch && (
+          {mode === "edit" && state.context.showUnsplashSearch && (
             <div className="space-y-4">
               <div className="flex gap-2 p-4 bg-muted rounded-md">
                 <input
                   type="text"
                   placeholder="Search Unsplash..."
-                  value={unsplashQuery}
-                  onChange={(e) => setUnsplashQuery(e.target.value)}
+                  value={state.context.unsplashQuery}
+                  onChange={(e) =>
+                    send({ type: "SET_UNSPLASH_QUERY", query: e.target.value })
+                  }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleUnsplashSearch();
@@ -392,7 +360,8 @@ export function ImageGalleryBuilder({
                   size="sm"
                   onClick={handleUnsplashSearch}
                   disabled={
-                    !unsplashQuery.trim() || state.context.loadingFromUnsplash
+                    !state.context.unsplashQuery.trim() ||
+                    state.context.loadingFromUnsplash
                   }
                 >
                   Search
@@ -400,12 +369,7 @@ export function ImageGalleryBuilder({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => {
-                    setShowUnsplashSearch(false);
-                    setUnsplashQuery("");
-                    setUnsplashResults([]);
-                    setSelectedImageIds(new Set());
-                  }}
+                  onClick={() => send({ type: "RESET_UNSPLASH_SEARCH" })}
                 >
                   <X className="size-4" />
                 </Button>
@@ -417,13 +381,13 @@ export function ImageGalleryBuilder({
                 </div>
               )}
 
-              {unsplashResults.length > 0 && (
+              {state.context.unsplashResults.length > 0 && (
                 <div className="border rounded-lg p-4 bg-background">
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-sm text-muted-foreground">
-                      {selectedImageIds.size > 0
-                        ? `${selectedImageIds.size} image${
-                            selectedImageIds.size > 1 ? "s" : ""
+                      {state.context.selectedImageIds.size > 0
+                        ? `${state.context.selectedImageIds.size} image${
+                            state.context.selectedImageIds.size > 1 ? "s" : ""
                           } selected`
                         : "Select images to add"}
                     </div>
@@ -431,23 +395,25 @@ export function ImageGalleryBuilder({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setSelectedImageIds(new Set())}
-                        disabled={selectedImageIds.size === 0}
+                        onClick={() => send({ type: "CLEAR_IMAGE_SELECTION" })}
+                        disabled={state.context.selectedImageIds.size === 0}
                       >
                         Clear Selection
                       </Button>
                       <Button
                         size="sm"
                         onClick={handleAddSelectedImages}
-                        disabled={selectedImageIds.size === 0}
+                        disabled={state.context.selectedImageIds.size === 0}
                       >
-                        Add Selected ({selectedImageIds.size})
+                        Add Selected ({state.context.selectedImageIds.size})
                       </Button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[500px] overflow-y-auto">
-                    {unsplashResults.map((photo) => {
-                      const isSelected = selectedImageIds.has(photo.id);
+                    {state.context.unsplashResults.map((photo) => {
+                      const isSelected = state.context.selectedImageIds.has(
+                        photo.id
+                      );
                       return (
                         <div
                           key={photo.id}

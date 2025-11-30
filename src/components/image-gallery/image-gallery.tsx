@@ -1,7 +1,7 @@
 "use client";
 
 import { useMachine } from "@xstate/react";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo } from "react";
 import Image from "next/image";
 import { createImageGalleryMachine } from "./image-gallery.state";
 import { ImageGalleryProvider, useImageGallery } from "./image-gallery.context";
@@ -75,11 +75,7 @@ export const ImageGalleryDisplay = ({
   onRemove,
   onEditCaption,
 }: ImageGalleryDisplayProps) => {
-  const { send } = useImageGallery();
-  const [editingCaption, setEditingCaption] = useState<{
-    imageId: string | number;
-  } | null>(null);
-  const [captionValue, setCaptionValue] = useState("");
+  const { state, send } = useImageGallery();
   const isEditMode = mode === "edit";
 
   const containerClasses = cn(
@@ -103,21 +99,25 @@ export const ImageGalleryDisplay = ({
     currentCaption: string | undefined
   ) => {
     if (!isEditMode || !onEditCaption) return;
-    setEditingCaption({ imageId });
-    setCaptionValue(currentCaption || "");
+    send({
+      type: "START_EDIT_CAPTION",
+      imageId,
+      currentCaption,
+    });
   };
 
   const handleSaveCaption = () => {
-    if (editingCaption && onEditCaption) {
-      onEditCaption(editingCaption.imageId, captionValue);
-      setEditingCaption(null);
-      setCaptionValue("");
+    if (state.context.editingCaption && onEditCaption) {
+      onEditCaption(
+        state.context.editingCaption.imageId,
+        state.context.captionValue
+      );
+      send({ type: "CANCEL_EDIT_CAPTION" });
     }
   };
 
   const handleCancelEditCaption = () => {
-    setEditingCaption(null);
-    setCaptionValue("");
+    send({ type: "CANCEL_EDIT_CAPTION" });
   };
 
   const handleRemove = (imageId: string | number, e: React.MouseEvent) => {
@@ -183,14 +183,20 @@ export const ImageGalleryDisplay = ({
                   </div>
                 )}
               </CardContent>
-              {(image.caption || editingCaption?.imageId === image.id) && (
+              {(image.caption ||
+                state.context.editingCaption?.imageId === image.id) && (
                 <CardFooter className="p-4 pt-2">
-                  {editingCaption?.imageId === image.id ? (
+                  {state.context.editingCaption?.imageId === image.id ? (
                     <div className="w-full space-y-2">
                       <input
                         type="text"
-                        value={captionValue}
-                        onChange={(e) => setCaptionValue(e.target.value)}
+                        value={state.context.captionValue}
+                        onChange={(e) =>
+                          send({
+                            type: "UPDATE_CAPTION_VALUE",
+                            value: e.target.value,
+                          })
+                        }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             handleSaveCaption();
@@ -282,12 +288,17 @@ export const ImageGalleryDisplay = ({
                 )}
               </div>
             )}
-            {editingCaption?.imageId === image.id ? (
+            {state.context.editingCaption?.imageId === image.id ? (
               <div className="mt-2 space-y-2">
                 <input
                   type="text"
-                  value={captionValue}
-                  onChange={(e) => setCaptionValue(e.target.value)}
+                  value={state.context.captionValue}
+                  onChange={(e) =>
+                    send({
+                      type: "UPDATE_CAPTION_VALUE",
+                      value: e.target.value,
+                    })
+                  }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleSaveCaption();

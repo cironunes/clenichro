@@ -1,11 +1,21 @@
 import { createMachine, assign } from "xstate";
 import type { ImageItem } from "./image-gallery";
+import type { UnsplashPhoto } from "./image-gallery.utils";
 
 type ImageGalleryContext = {
   images: ImageItem[];
   uploading: boolean;
   loadingFromUnsplash: boolean;
   error: string | null;
+  unsplashQuery: string;
+  showUnsplashSearch: boolean;
+  unsplashResults: UnsplashPhoto[];
+  selectedImageIds: Set<string>;
+  uploadedPreviews: ImageItem[];
+  selectedUploadIds: Set<string | number>;
+  showUploadPreview: boolean;
+  editingCaption: { imageId: string | number } | null;
+  captionValue: string;
 };
 
 export const createImageGalleryMachine = (uniqueId: string) =>
@@ -17,6 +27,15 @@ export const createImageGalleryMachine = (uniqueId: string) =>
       uploading: false,
       loadingFromUnsplash: false,
       error: null,
+      unsplashQuery: "",
+      showUnsplashSearch: false,
+      unsplashResults: [],
+      selectedImageIds: new Set(),
+      uploadedPreviews: [],
+      selectedUploadIds: new Set(),
+      showUploadPreview: false,
+      editingCaption: null,
+      captionValue: "",
     } as ImageGalleryContext,
     states: {
       idle: {
@@ -49,6 +68,98 @@ export const createImageGalleryMachine = (uniqueId: string) =>
           },
           LOAD_UNSPLASH_START: {
             target: "loadingUnsplash",
+          },
+          SET_UNSPLASH_QUERY: {
+            actions: assign({
+              unsplashQuery: ({ event }) => event.query,
+            }),
+          },
+          TOGGLE_UNSPLASH_SEARCH: {
+            actions: assign({
+              showUnsplashSearch: ({ context }) => !context.showUnsplashSearch,
+              unsplashQuery: ({ context }) =>
+                context.showUnsplashSearch ? "" : context.unsplashQuery,
+              unsplashResults: ({ context }) =>
+                context.showUnsplashSearch ? [] : context.unsplashResults,
+              selectedImageIds: ({ context }) =>
+                context.showUnsplashSearch
+                  ? new Set()
+                  : context.selectedImageIds,
+            }),
+          },
+          SET_UNSPLASH_RESULTS: {
+            actions: assign({
+              unsplashResults: ({ event }) => event.results,
+              selectedImageIds: () => new Set(),
+            }),
+          },
+          TOGGLE_IMAGE_SELECTION: {
+            actions: assign({
+              selectedImageIds: ({ context, event }) => {
+                const next = new Set(context.selectedImageIds);
+                if (next.has(event.imageId)) {
+                  next.delete(event.imageId);
+                } else {
+                  next.add(event.imageId);
+                }
+                return next;
+              },
+            }),
+          },
+          CLEAR_IMAGE_SELECTION: {
+            actions: assign({
+              selectedImageIds: () => new Set(),
+            }),
+          },
+          SET_UPLOADED_PREVIEWS: {
+            actions: assign({
+              uploadedPreviews: ({ event }) => event.previews,
+              selectedUploadIds: ({ event }) =>
+                new Set(event.previews.map((img) => img.id)),
+              showUploadPreview: () => true,
+            }),
+          },
+          TOGGLE_UPLOAD_SELECTION: {
+            actions: assign({
+              selectedUploadIds: ({ context, event }) => {
+                const next = new Set(context.selectedUploadIds);
+                if (next.has(event.imageId)) {
+                  next.delete(event.imageId);
+                } else {
+                  next.add(event.imageId);
+                }
+                return next;
+              },
+            }),
+          },
+          CLEAR_UPLOAD_SELECTION: {
+            actions: assign({
+              selectedUploadIds: () => new Set(),
+            }),
+          },
+          CLOSE_UPLOAD_PREVIEW: {
+            actions: assign({
+              showUploadPreview: () => false,
+              uploadedPreviews: () => [],
+              selectedUploadIds: () => new Set(),
+            }),
+          },
+          START_EDIT_CAPTION: {
+            actions: assign({
+              editingCaption: ({ event }) => ({ imageId: event.imageId }),
+              captionValue: ({ event }) => event.currentCaption || "",
+            }),
+          },
+          UPDATE_CAPTION_VALUE: {
+            actions: assign({
+              captionValue: ({ event }) => event.value,
+            }),
+          },
+          CANCEL_EDIT_CAPTION: {
+            actions: assign({
+              editingCaption: () => null,
+              captionValue: () => "",
+            }),
           },
         },
       },
@@ -86,6 +197,98 @@ export const createImageGalleryMachine = (uniqueId: string) =>
           LOAD_UNSPLASH_START: {
             target: "loadingUnsplash",
           },
+          SET_UNSPLASH_QUERY: {
+            actions: assign({
+              unsplashQuery: ({ event }) => event.query,
+            }),
+          },
+          TOGGLE_UNSPLASH_SEARCH: {
+            actions: assign({
+              showUnsplashSearch: ({ context }) => !context.showUnsplashSearch,
+              unsplashQuery: ({ context }) =>
+                context.showUnsplashSearch ? "" : context.unsplashQuery,
+              unsplashResults: ({ context }) =>
+                context.showUnsplashSearch ? [] : context.unsplashResults,
+              selectedImageIds: ({ context }) =>
+                context.showUnsplashSearch
+                  ? new Set()
+                  : context.selectedImageIds,
+            }),
+          },
+          SET_UNSPLASH_RESULTS: {
+            actions: assign({
+              unsplashResults: ({ event }) => event.results,
+              selectedImageIds: () => new Set(),
+            }),
+          },
+          TOGGLE_IMAGE_SELECTION: {
+            actions: assign({
+              selectedImageIds: ({ context, event }) => {
+                const next = new Set(context.selectedImageIds);
+                if (next.has(event.imageId)) {
+                  next.delete(event.imageId);
+                } else {
+                  next.add(event.imageId);
+                }
+                return next;
+              },
+            }),
+          },
+          CLEAR_IMAGE_SELECTION: {
+            actions: assign({
+              selectedImageIds: () => new Set(),
+            }),
+          },
+          SET_UPLOADED_PREVIEWS: {
+            actions: assign({
+              uploadedPreviews: ({ event }) => event.previews,
+              selectedUploadIds: ({ event }) =>
+                new Set(event.previews.map((img) => img.id)),
+              showUploadPreview: () => true,
+            }),
+          },
+          TOGGLE_UPLOAD_SELECTION: {
+            actions: assign({
+              selectedUploadIds: ({ context, event }) => {
+                const next = new Set(context.selectedUploadIds);
+                if (next.has(event.imageId)) {
+                  next.delete(event.imageId);
+                } else {
+                  next.add(event.imageId);
+                }
+                return next;
+              },
+            }),
+          },
+          CLEAR_UPLOAD_SELECTION: {
+            actions: assign({
+              selectedUploadIds: () => new Set(),
+            }),
+          },
+          CLOSE_UPLOAD_PREVIEW: {
+            actions: assign({
+              showUploadPreview: () => false,
+              uploadedPreviews: () => [],
+              selectedUploadIds: () => new Set(),
+            }),
+          },
+          START_EDIT_CAPTION: {
+            actions: assign({
+              editingCaption: ({ event }) => ({ imageId: event.imageId }),
+              captionValue: ({ event }) => event.currentCaption || "",
+            }),
+          },
+          UPDATE_CAPTION_VALUE: {
+            actions: assign({
+              captionValue: ({ event }) => event.value,
+            }),
+          },
+          CANCEL_EDIT_CAPTION: {
+            actions: assign({
+              editingCaption: () => null,
+              captionValue: () => "",
+            }),
+          },
         },
       },
       uploading: {
@@ -105,6 +308,14 @@ export const createImageGalleryMachine = (uniqueId: string) =>
               error: ({ event }) => event.error,
             }),
           },
+          SET_UPLOADED_PREVIEWS: {
+            actions: assign({
+              uploadedPreviews: ({ event }) => event.previews,
+              selectedUploadIds: ({ event }) =>
+                new Set(event.previews.map((img) => img.id)),
+              showUploadPreview: () => true,
+            }),
+          },
         },
       },
       loadingUnsplash: {
@@ -122,6 +333,13 @@ export const createImageGalleryMachine = (uniqueId: string) =>
             actions: assign({
               loadingFromUnsplash: false,
               error: ({ event }) => event.error,
+              unsplashResults: () => [],
+            }),
+          },
+          SET_UNSPLASH_RESULTS: {
+            actions: assign({
+              unsplashResults: ({ event }) => event.results,
+              selectedImageIds: () => new Set(),
             }),
           },
         },
@@ -145,6 +363,28 @@ export const createImageGalleryMachine = (uniqueId: string) =>
       SET_IMAGES: {
         actions: assign({
           images: ({ event }) => event.images,
+        }),
+      },
+      RESET_UNSPLASH_SEARCH: {
+        actions: assign({
+          unsplashQuery: () => "",
+          unsplashResults: () => [],
+          selectedImageIds: () => new Set(),
+          showUnsplashSearch: () => false,
+        }),
+      },
+      SET_UNSPLASH_RESULTS: {
+        actions: assign({
+          unsplashResults: ({ event }) => event.results,
+          selectedImageIds: () => new Set(),
+        }),
+      },
+      SET_UPLOADED_PREVIEWS: {
+        actions: assign({
+          uploadedPreviews: ({ event }) => event.previews,
+          selectedUploadIds: ({ event }) =>
+            new Set(event.previews.map((img) => img.id)),
+          showUploadPreview: () => true,
         }),
       },
     },

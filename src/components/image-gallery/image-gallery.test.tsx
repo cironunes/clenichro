@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ImageGallery, type ImageItem } from "./image-gallery";
 
 vi.mock("next/image", () => ({
@@ -97,5 +98,186 @@ describe("ImageGallery", () => {
 
     const images = screen.getAllByAltText(/test image|data url image/i);
     expect(images[0]).toBeInTheDocument();
+  });
+
+  describe("Caption editing", () => {
+    it("should start editing caption in edit mode", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      expect(captionInput).toBeInTheDocument();
+    });
+
+    it("should save caption when Enter is pressed", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      await user.clear(captionInput);
+      await user.type(captionInput, "New caption");
+      await user.keyboard("{Enter}");
+
+      expect(mockOnEditCaption).toHaveBeenCalledWith("1", "New caption");
+    });
+
+    it("should cancel caption editing when Escape is pressed", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      await user.type(captionInput, "New caption");
+      await user.keyboard("{Escape}");
+
+      expect(mockOnEditCaption).not.toHaveBeenCalled();
+      expect(
+        screen.queryByPlaceholderText("Enter caption...")
+      ).not.toBeInTheDocument();
+    });
+
+    it("should save caption when Save button is clicked", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      await user.clear(captionInput);
+      await user.type(captionInput, "New caption");
+
+      const saveButton = screen.getByText("Save");
+      await user.click(saveButton);
+
+      expect(mockOnEditCaption).toHaveBeenCalledWith("1", "New caption");
+    });
+
+    it("should cancel caption editing when Cancel button is clicked", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      await user.type(captionInput, "New caption");
+
+      const cancelButton = screen.getByText("Cancel");
+      await user.click(cancelButton);
+
+      expect(mockOnEditCaption).not.toHaveBeenCalled();
+      expect(
+        screen.queryByPlaceholderText("Enter caption...")
+      ).not.toBeInTheDocument();
+    });
+
+    it("should prefill caption input with existing caption", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText(
+        "Enter caption..."
+      ) as HTMLInputElement;
+      expect(captionInput.value).toBe("Caption 1");
+    });
+
+    it("should not show edit button in preview mode", () => {
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="card"
+          mode="preview"
+          onEditCaption={vi.fn()}
+        />
+      );
+
+      expect(screen.queryAllByLabelText("Edit caption")).toHaveLength(0);
+    });
+
+    it("should handle caption editing in horizontal layout", async () => {
+      const user = userEvent.setup();
+      const mockOnEditCaption = vi.fn();
+
+      render(
+        <ImageGallery
+          images={mockImages}
+          layout="horizontal"
+          mode="edit"
+          onEditCaption={mockOnEditCaption}
+        />
+      );
+
+      const editButtons = screen.getAllByLabelText("Edit caption");
+      await user.click(editButtons[0]);
+
+      const captionInput = screen.getByPlaceholderText("Enter caption...");
+      expect(captionInput).toBeInTheDocument();
+    });
   });
 });
