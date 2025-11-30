@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ImageGalleryBuilder } from "./image-gallery-builder";
-import type { ImageItem } from "./image-gallery";
-import * as imageGalleryUtils from "./image-gallery.utils";
+import type { ImageItem } from "../image-gallery";
+import * as imageGalleryUtils from "../image-gallery.utils";
 
 vi.mock("next/image", () => ({
   default: ({ src, alt, ...props }: any) => (

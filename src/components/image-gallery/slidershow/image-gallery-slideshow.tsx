@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { useImageGallery } from "./image-gallery.context";
-import type { ImageItem } from "./image-gallery";
+import { useImageGallery } from "../image-gallery.context";
+import type { ImageItem } from "../image-gallery";
 import { cn } from "@/lib/utils";
 
 type ImageGallerySlideshowProps = {

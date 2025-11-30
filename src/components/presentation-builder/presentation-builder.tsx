@@ -50,7 +50,9 @@ function PresentationBuilderContent() {
     send({ type: "UPDATE_WIDGET", slideId, widgetId, updates });
   };
 
-  const getImageGalleryWidget = (widget: any): widget is ImageGalleryWidget => {
+  const getImageGalleryWidget = (widget: {
+    type: string;
+  }): widget is ImageGalleryWidget => {
     return widget.type === "image-gallery";
   };
 
