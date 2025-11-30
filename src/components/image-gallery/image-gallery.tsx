@@ -1,14 +1,15 @@
 "use client";
 
 import { useMachine } from "@xstate/react";
-import { useId, useMemo } from "react";
+import { useId, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { createImageGalleryMachine } from "./image-gallery.state";
 import { ImageGalleryProvider, useImageGallery } from "./image-gallery.context";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageGallerySlideshow } from "./image-gallery-slideshow";
 
 export type ImageItem = {
   id: string | number;
@@ -44,6 +45,11 @@ export const ImageGallery = ({
     [uniqueId]
   );
   const [state, send] = useMachine(machine);
+
+  useEffect(() => {
+    send({ type: "SET_IMAGES", images });
+  }, [images, send]);
+
   return (
     <ImageGalleryProvider state={state} send={send}>
       <ImageGalleryDisplay
@@ -54,6 +60,7 @@ export const ImageGallery = ({
         onRemove={onRemove}
         onEditCaption={onEditCaption}
       />
+      <ImageGallerySlideshow images={images} />
     </ImageGalleryProvider>
   );
 };
@@ -132,7 +139,6 @@ export const ImageGalleryDisplay = ({
       {images.map((image) => {
         const imageProps = {
           src: image.src,
-          alt: image.alt,
           width: 400,
           height: 300,
           className: imageClasses,
@@ -144,23 +150,45 @@ export const ImageGalleryDisplay = ({
             <Card
               key={image.id}
               className={cn(
-                "overflow-hidden transition-shadow relative group",
+                "overflow-hidden transition-shadow relative image-gallery-item",
                 {
-                  "cursor-pointer hover:shadow-lg": !isEditMode,
+                  "cursor-pointer hover:shadow-lg": true,
                 }
               )}
               onClick={() =>
-                !isEditMode && send({ type: "IMAGE_CLICKED", image })
+                send({
+                  type: "IMAGE_CLICKED",
+                  image,
+                  enterSlideshow: true,
+                })
               }
             >
               <CardContent className="p-0 relative">
-                <Image {...imageProps} />
+                <Image alt={image.alt} {...imageProps} />
                 {isEditMode && (
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 [.image-gallery-item:hover_&]:opacity-100 transition-opacity pointer-events-none [.image-gallery-item:hover_&]:pointer-events-auto">
+                    <Button
+                      size="icon-sm"
+                      variant="secondary"
+                      className="bg-white/90 hover:bg-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        send({
+                          type: "IMAGE_CLICKED",
+                          image,
+                          enterSlideshow: true,
+                        });
+                      }}
+                      aria-label="View in slideshow"
+                      title="View in slideshow"
+                    >
+                      <Maximize2 className="size-3" />
+                    </Button>
                     {onEditCaption && (
                       <Button
                         size="icon-sm"
                         variant="secondary"
+                        className="bg-white/90 hover:bg-white"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleStartEditCaption(image.id, image.caption);
@@ -247,26 +275,41 @@ export const ImageGalleryDisplay = ({
         return (
           <div
             key={image.id}
-            className={cn("relative group", {
+            className={cn("relative image-gallery-item", {
               "w-full": layout === "vertical",
               "flex-1 min-w-[200px]": layout === "horizontal",
             })}
           >
             <Image
+              alt={image.alt}
               {...imageProps}
               className={cn(imageClasses, {
-                "cursor-pointer": !isEditMode,
+                "cursor-pointer": true,
               })}
               onClick={() =>
-                !isEditMode && send({ type: "IMAGE_CLICKED", image })
+                send({
+                  type: "IMAGE_CLICKED",
+                  image,
+                  enterSlideshow: true,
+                })
               }
             />
+            {!isEditMode && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="opacity-0 [.image-gallery-item:hover_&]:opacity-100 transition-opacity">
+                  <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                    <Maximize2 className="size-5 text-gray-700" />
+                  </div>
+                </div>
+              </div>
+            )}
             {isEditMode && (
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex gap-1 opacity-0 [.image-gallery-item:hover_&]:opacity-100 transition-opacity pointer-events-none [.image-gallery-item:hover_&]:pointer-events-auto">
                 {onEditCaption && (
                   <Button
                     size="icon-sm"
                     variant="secondary"
+                    className="bg-white/90 hover:bg-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStartEditCaption(image.id, image.caption);

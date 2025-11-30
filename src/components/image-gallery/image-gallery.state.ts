@@ -16,6 +16,7 @@ type ImageGalleryContext = {
   showUploadPreview: boolean;
   editingCaption: { imageId: string | number } | null;
   captionValue: string;
+  slideshowIndex: number | null;
 };
 
 export const createImageGalleryMachine = (uniqueId: string) =>
@@ -36,11 +37,28 @@ export const createImageGalleryMachine = (uniqueId: string) =>
       showUploadPreview: false,
       editingCaption: null,
       captionValue: "",
+      slideshowIndex: null,
     } as ImageGalleryContext,
     states: {
       idle: {
         on: {
-          IMAGE_CLICKED: "selected",
+          IMAGE_CLICKED: [
+            {
+              target: "slideshow",
+              guard: ({ event }) => event.enterSlideshow === true,
+              actions: assign({
+                slideshowIndex: ({ context, event }) => {
+                  const index = context.images.findIndex(
+                    (img) => img.id === event.image.id
+                  );
+                  return index >= 0 ? index : 0;
+                },
+              }),
+            },
+            {
+              target: "selected",
+            },
+          ],
           ADD_IMAGES: {
             actions: assign({
               images: ({ context, event }) => [
@@ -115,7 +133,7 @@ export const createImageGalleryMachine = (uniqueId: string) =>
             actions: assign({
               uploadedPreviews: ({ event }) => event.previews,
               selectedUploadIds: ({ event }) =>
-                new Set(event.previews.map((img) => img.id)),
+                new Set(event.previews.map((img: ImageItem) => img.id)),
               showUploadPreview: () => true,
             }),
           },
@@ -243,7 +261,7 @@ export const createImageGalleryMachine = (uniqueId: string) =>
             actions: assign({
               uploadedPreviews: ({ event }) => event.previews,
               selectedUploadIds: ({ event }) =>
-                new Set(event.previews.map((img) => img.id)),
+                new Set(event.previews.map((img: ImageItem) => img.id)),
               showUploadPreview: () => true,
             }),
           },
@@ -312,7 +330,7 @@ export const createImageGalleryMachine = (uniqueId: string) =>
             actions: assign({
               uploadedPreviews: ({ event }) => event.previews,
               selectedUploadIds: ({ event }) =>
-                new Set(event.previews.map((img) => img.id)),
+                new Set(event.previews.map((img: ImageItem) => img.id)),
               showUploadPreview: () => true,
             }),
           },
@@ -355,6 +373,40 @@ export const createImageGalleryMachine = (uniqueId: string) =>
           IMAGE_ERROR: "error",
         },
       },
+      slideshow: {
+        on: {
+          CLOSE_SLIDESHOW: {
+            target: "idle",
+            actions: assign({
+              slideshowIndex: () => null,
+            }),
+          },
+          NEXT_IMAGE: {
+            actions: assign({
+              slideshowIndex: ({ context }) => {
+                if (context.slideshowIndex === null) return 0;
+                return (context.slideshowIndex + 1) % context.images.length;
+              },
+            }),
+          },
+          PREVIOUS_IMAGE: {
+            actions: assign({
+              slideshowIndex: ({ context }) => {
+                if (context.slideshowIndex === null) return 0;
+                return (
+                  (context.slideshowIndex - 1 + context.images.length) %
+                  context.images.length
+                );
+              },
+            }),
+          },
+          GO_TO_IMAGE: {
+            actions: assign({
+              slideshowIndex: ({ event }) => event.index,
+            }),
+          },
+        },
+      },
     },
     on: {
       CLEAR_ERROR: {
@@ -363,6 +415,12 @@ export const createImageGalleryMachine = (uniqueId: string) =>
       SET_IMAGES: {
         actions: assign({
           images: ({ event }) => event.images,
+        }),
+      },
+      CLOSE_SLIDESHOW: {
+        target: ".idle",
+        actions: assign({
+          slideshowIndex: () => null,
         }),
       },
       RESET_UNSPLASH_SEARCH: {
@@ -383,7 +441,7 @@ export const createImageGalleryMachine = (uniqueId: string) =>
         actions: assign({
           uploadedPreviews: ({ event }) => event.previews,
           selectedUploadIds: ({ event }) =>
-            new Set(event.previews.map((img) => img.id)),
+            new Set(event.previews.map((img: ImageItem) => img.id)),
           showUploadPreview: () => true,
         }),
       },
