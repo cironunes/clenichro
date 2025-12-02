@@ -58,11 +58,11 @@ function PresentationBuilderContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-6xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <div className="w-full space-y-12">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Presentation Builder</h1>
-            <Button onClick={handleAddSlide} className="gap-2">
+      <main className="flex min-h-screen w-full max-w-6xl flex-col items-center justify-between py-8 px-4 sm:py-16 sm:px-8 lg:py-32 lg:px-16 bg-white dark:bg-black sm:items-start">
+        <div className="w-full space-y-8 sm:space-y-12">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl sm:text-3xl font-bold">Presentation Builder</h1>
+            <Button onClick={handleAddSlide} className="gap-2 w-full sm:w-auto">
               <Plus className="size-4" />
               Add Slide
             </Button>
@@ -84,17 +84,18 @@ function PresentationBuilderContent() {
                   data-selected={selectedSlideId === slide.id}
                 >
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>{slide.title || "Untitled Slide"}</CardTitle>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <CardTitle className="text-lg sm:text-xl">{slide.title || "Untitled Slide"}</CardTitle>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleAddImageGalleryWidget(slide.id)}
-                          className="gap-2"
+                          className="gap-2 flex-1 sm:flex-initial"
                         >
                           <Plus className="size-3" />
-                          Add Image Gallery
+                          <span className="hidden sm:inline">Add Image Gallery</span>
+                          <span className="sm:hidden">Add Gallery</span>
                         </Button>
                         <Button
                           variant="destructive"

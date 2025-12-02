@@ -54,8 +54,8 @@ function EditControls({
   onToggleUnsplash,
 }: EditControlsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <label className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+      <label className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-[200px]">
         <span className="text-sm font-medium">Title:</span>
         <input
           type="text"
@@ -64,15 +64,15 @@ function EditControls({
             debugger;
             onTitleChange?.(e.target.value);
           }}
-          className="rounded-md border border-input bg-background px-3 py-1 text-sm"
+          className="rounded-md border border-input bg-background px-3 py-1 text-sm flex-1"
         />
       </label>
-      <label className="flex items-center gap-2">
+      <label className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-[200px]">
         <span className="text-sm font-medium">Layout:</span>
         <select
           value={layout}
           onChange={(e) => onLayoutChange(e.target.value as ImageGalleryLayout)}
-          className="rounded-md border border-input bg-background px-3 py-1 text-sm"
+          className="rounded-md border border-input bg-background px-3 py-1 text-sm flex-1"
           aria-label="Layout"
         >
           {LAYOUT_OPTIONS.map((option) => (
@@ -87,10 +87,11 @@ function EditControls({
         size="sm"
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className="gap-2"
+        className="gap-2 w-full sm:w-auto"
       >
         <Upload className="size-3" />
-        {uploading ? "Uploading..." : "Upload Images"}
+        <span className="hidden sm:inline">{uploading ? "Uploading..." : "Upload Images"}</span>
+        <span className="sm:hidden">{uploading ? "Uploading..." : "Upload"}</span>
       </Button>
       <input
         ref={fileInputRef}
@@ -105,10 +106,11 @@ function EditControls({
         size="sm"
         onClick={onToggleUnsplash}
         disabled={loadingFromUnsplash}
-        className="gap-2"
+        className="gap-2 w-full sm:w-auto"
       >
         <Search className="size-3" />
-        {loadingFromUnsplash ? "Loading..." : "Load from Unsplash"}
+        <span className="hidden sm:inline">{loadingFromUnsplash ? "Loading..." : "Load from Unsplash"}</span>
+        <span className="sm:hidden">{loadingFromUnsplash ? "Loading..." : "Unsplash"}</span>
       </Button>
     </div>
   );
@@ -152,7 +154,7 @@ function UploadPreview({
       className="border rounded-lg p-4 bg-background"
       data-testid="upload-preview"
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="text-sm text-muted-foreground">
           {selectedUploadIds.size > 0
             ? `${selectedUploadIds.size} image${
@@ -166,15 +168,17 @@ function UploadPreview({
             variant="outline"
             onClick={onClearSelection}
             disabled={selectedUploadIds.size === 0}
+            className="flex-1 sm:flex-initial"
           >
-            Clear Selection
+            Clear
           </Button>
           <Button
             size="sm"
             onClick={onConfirm}
             disabled={selectedUploadIds.size === 0}
+            className="flex-1 sm:flex-initial"
           >
-            Add Selected ({selectedUploadIds.size})
+            Add ({selectedUploadIds.size})
           </Button>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <X className="size-4" />
@@ -275,7 +279,7 @@ function UnsplashSearch({
 }: UnsplashSearchProps) {
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 p-4 bg-muted rounded-md">
+      <div className="flex flex-col sm:flex-row gap-2 p-4 bg-muted rounded-md">
         <input
           type="text"
           placeholder="Search Unsplash..."
@@ -288,16 +292,19 @@ function UnsplashSearch({
           }}
           className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
         />
-        <Button
-          size="sm"
-          onClick={onSearch}
-          disabled={!unsplashQuery.trim() || loadingFromUnsplash}
-        >
-          Search
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onReset}>
-          <X className="size-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={onSearch}
+            disabled={!unsplashQuery.trim() || loadingFromUnsplash}
+            className="flex-1 sm:flex-initial"
+          >
+            Search
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onReset}>
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {loadingFromUnsplash && (
@@ -308,7 +315,7 @@ function UnsplashSearch({
 
       {unsplashResults.length > 0 && (
         <div className="border rounded-lg p-4 bg-background">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div className="text-sm text-muted-foreground">
               {selectedImageIds.size > 0
                 ? `${selectedImageIds.size} image${
@@ -322,15 +329,17 @@ function UnsplashSearch({
                 variant="outline"
                 onClick={onClearSelection}
                 disabled={selectedImageIds.size === 0}
+                className="flex-1 sm:flex-initial"
               >
-                Clear Selection
+                Clear
               </Button>
               <Button
                 size="sm"
                 onClick={onAddSelected}
                 disabled={selectedImageIds.size === 0}
+                className="flex-1 sm:flex-initial"
               >
-                Add Selected ({selectedImageIds.size})
+                Add ({selectedImageIds.size})
               </Button>
             </div>
           </div>
@@ -543,8 +552,8 @@ export function ImageGalleryBuilder({
         data-testid="widget-card"
       >
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <CardTitle className="text-lg">
                 {title || "Image Gallery"}
               </CardTitle>
@@ -553,11 +562,12 @@ export function ImageGalleryBuilder({
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditPopoverOpen(true)}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                   aria-label="Edit gallery"
                 >
                   <Edit2 className="size-4" />
-                  Edit Gallery
+                  <span className="hidden sm:inline">Edit Gallery</span>
+                  <span className="sm:hidden">Edit</span>
                 </Button>
               )}
             </div>
@@ -567,7 +577,7 @@ export function ImageGalleryBuilder({
                   variant="default"
                   size="sm"
                   onClick={() => onModeChange("preview")}
-                  className="gap-2"
+                  className="gap-2 flex-1 sm:flex-initial"
                   aria-label="Confirm and exit edit mode"
                 >
                   <Check className="size-4" />
@@ -659,7 +669,7 @@ export function ImageGalleryBuilder({
                   />
                   <div
                     ref={popoverRef}
-                    className="relative z-50 w-full max-w-4xl max-h-[90vh] bg-popover border border-border rounded-lg shadow-lg overflow-hidden flex flex-col"
+                    className="relative z-50 w-full max-w-4xl max-h-[90vh] bg-popover border border-border rounded-lg shadow-lg overflow-hidden flex flex-col m-4"
                   >
                     <div className="flex items-center justify-between p-4 border-b border-border">
                       <h3 className="text-lg font-semibold">Edit Gallery</h3>
@@ -756,10 +766,11 @@ export function ImageGalleryBuilder({
                         />
                       </div>
                     </div>
-                    <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 p-4 border-t border-border">
                       <Button
                         variant="outline"
                         onClick={() => setIsEditPopoverOpen(false)}
+                        className="w-full sm:w-auto"
                       >
                         Cancel
                       </Button>
@@ -767,6 +778,7 @@ export function ImageGalleryBuilder({
                         onClick={() => {
                           setIsEditPopoverOpen(false);
                         }}
+                        className="w-full sm:w-auto"
                       >
                         Done
                       </Button>
