@@ -162,6 +162,60 @@ test.describe("Presentation Builder", () => {
     await expect(page.getByText(/select images to add/i)).toBeVisible();
   });
 
+  test("should add images from Unsplash to image gallery", async ({ page }) => {
+    test.skip(
+      !process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY,
+      "Unsplash API key not configured"
+    );
+
+    await page.getByRole("button", { name: /add slide/i }).click();
+
+    const slideCard = page.locator('[data-testid="slide-card"]').first();
+    await slideCard.getByRole("button", { name: /add image gallery/i }).click();
+
+    const widgetCard = slideCard.locator('[data-testid="widget-card"]').first();
+
+    const initialImageCount = await widgetCard.locator("img").count();
+
+    await widgetCard
+      .getByRole("button", { name: /load from unsplash/i })
+      .click();
+
+    const searchInput = page.getByPlaceholder(/search unsplash/i);
+    await searchInput.fill("nature");
+    await page.getByRole("button", { name: /search/i }).click();
+
+    await expect(page.getByText(/loading images/i)).toBeVisible();
+
+    await page.waitForSelector('img[src*="images.unsplash.com"]', {
+      timeout: 10000,
+    });
+
+    const gridContainer = page
+      .locator("div.grid")
+      .filter({ has: page.locator('img[src*="images.unsplash.com"]') });
+    const clickableContainers = gridContainer.locator("div.cursor-pointer");
+    const resultCount = await clickableContainers.count();
+    expect(resultCount).toBeGreaterThanOrEqual(2);
+
+    const firstContainer = clickableContainers.first();
+    await firstContainer.click();
+    await expect(page.getByText(/1 image.*selected/i)).toBeVisible();
+
+    const secondContainer = clickableContainers.nth(1);
+    await secondContainer.click();
+    await expect(page.getByText(/2 image.*selected/i)).toBeVisible();
+
+    const addButton = page.getByRole("button", { name: /^add \(2\)$/i });
+    await expect(addButton).toBeEnabled();
+    await addButton.click();
+
+    await page.waitForTimeout(1000);
+
+    const finalImageCount = await widgetCard.locator("img").count();
+    expect(finalImageCount).toBeGreaterThan(initialImageCount);
+  });
+
   test("should remove an image from widget", async ({ page }) => {
     await page.getByRole("button", { name: /add slide/i }).click();
 

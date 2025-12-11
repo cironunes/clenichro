@@ -124,37 +124,6 @@ describe("PresentationBuilderMachine", () => {
     expect(widget.title).toBe("Updated Gallery");
   });
 
-  it("should select a slide", () => {
-    const machine = createPresentationBuilderMachine("test");
-    const actor = createActor(machine).start();
-
-    actor.send({ type: "ADD_SLIDE" });
-    const slideId = actor.getSnapshot().context.slides[0].id;
-
-    actor.send({ type: "SELECT_SLIDE", slideId });
-
-    expect(actor.getSnapshot().context.selectedSlideId).toBe(slideId);
-  });
-
-  it("should select a widget", () => {
-    const machine = createPresentationBuilderMachine("test");
-    const actor = createActor(machine).start();
-
-    actor.send({ type: "ADD_SLIDE" });
-    const slideId = actor.getSnapshot().context.slides[0].id;
-    actor.send({
-      type: "ADD_WIDGET",
-      slideId,
-      widgetType: "image-gallery",
-    });
-    const widgetId = actor.getSnapshot().context.slides[0].widgets[0].id;
-
-    actor.send({ type: "SELECT_WIDGET", slideId, widgetId });
-
-    expect(actor.getSnapshot().context.selectedSlideId).toBe(slideId);
-    expect(actor.getSnapshot().context.selectedWidgetId).toBe(widgetId);
-  });
-
   it("should clear error", () => {
     const machine = createPresentationBuilderMachine("test");
     const actor = createActor(machine).start();

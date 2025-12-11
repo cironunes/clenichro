@@ -134,18 +134,6 @@ export const createPresentationBuilderMachine = (uniqueId: string) =>
                 ),
             }),
           },
-          SELECT_SLIDE: {
-            actions: assign({
-              selectedSlideId: ({ event }) => event.slideId,
-              selectedWidgetId: () => null,
-            }),
-          },
-          SELECT_WIDGET: {
-            actions: assign({
-              selectedSlideId: ({ event }) => event.slideId,
-              selectedWidgetId: ({ event }) => event.widgetId,
-            }),
-          },
         },
       },
     },

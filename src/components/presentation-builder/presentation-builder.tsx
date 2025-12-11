@@ -13,7 +13,6 @@ import type { ImageGalleryWidget } from "./presentation-builder.state";
 function PresentationBuilderContent() {
   const { state, send } = usePresentationBuilder();
   const slides = state.context.slides;
-  const selectedSlideId = state.context.selectedSlideId;
 
   const handleAddSlide = () => {
     send({ type: "ADD_SLIDE" });
@@ -21,13 +20,6 @@ function PresentationBuilderContent() {
 
   const handleRemoveSlide = (slideId: string) => {
     send({ type: "REMOVE_SLIDE", slideId });
-  };
-
-  const handleUpdateSlide = (
-    slideId: string,
-    updates: Partial<{ title: string }>
-  ) => {
-    send({ type: "UPDATE_SLIDE", slideId, updates });
   };
 
   const handleAddImageGalleryWidget = (slideId: string) => {
@@ -61,7 +53,9 @@ function PresentationBuilderContent() {
       <main className="flex min-h-screen w-full max-w-6xl flex-col items-center justify-between py-8 px-4 sm:py-16 sm:px-8 lg:py-32 lg:px-16 bg-white dark:bg-black sm:items-start">
         <div className="w-full space-y-8 sm:space-y-12">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-2xl sm:text-3xl font-bold">Presentation Builder</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              Presentation Builder
+            </h1>
             <Button onClick={handleAddSlide} className="gap-2 w-full sm:w-auto">
               <Plus className="size-4" />
               Add Slide
@@ -81,11 +75,12 @@ function PresentationBuilderContent() {
                   key={slide.id}
                   className="w-full"
                   data-testid="slide-card"
-                  data-selected={selectedSlideId === slide.id}
                 >
                   <CardHeader>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <CardTitle className="text-lg sm:text-xl">{slide.title || "Untitled Slide"}</CardTitle>
+                      <CardTitle className="text-lg sm:text-xl">
+                        {slide.title || "Untitled Slide"}
+                      </CardTitle>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -94,7 +89,9 @@ function PresentationBuilderContent() {
                           className="gap-2 flex-1 sm:flex-initial"
                         >
                           <Plus className="size-3" />
-                          <span className="hidden sm:inline">Add Image Gallery</span>
+                          <span className="hidden sm:inline">
+                            Add Image Gallery
+                          </span>
                           <span className="sm:hidden">Add Gallery</span>
                         </Button>
                         <Button

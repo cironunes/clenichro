@@ -56,10 +56,12 @@ describe("PresentationBuilderContext", () => {
     try {
       render(<TestComponent />);
       expect.fail("Should have thrown an error");
-    } catch (error: any) {
-      expect(error.message).toContain(
-        "usePresentationBuilder must be used within a PresentationBuilderProvider"
-      );
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        expect(error.message).toContain(
+          "usePresentationBuilder must be used within a PresentationBuilderProvider"
+        );
+      }
     }
 
     consoleError.mockRestore();

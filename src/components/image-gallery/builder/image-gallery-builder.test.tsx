@@ -244,7 +244,7 @@ describe("ImageGalleryBuilder", () => {
     const photo = screen.getByAltText("Test photo");
     await user.click(photo);
 
-    const addButton = await screen.findByText(/Add Selected/);
+    const addButton = await screen.findByText(/Add \(\d+\)/);
     await user.click(addButton);
 
     await waitFor(() => {
